@@ -6,4 +6,5 @@ E_Exp_OK01_main表示Exponential-OK插值
 
 E_Gauss_OK01_main表示Gaussian-OK插值
 
-输出与原图插值结果的标准差和克里金方差
+
+RMSE和MAE，理论克里金方差，拟合优度R2
