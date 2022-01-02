@@ -2,7 +2,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
-
+import os
 from tensorflow.keras.models import load_model
 import time
 
@@ -83,6 +83,8 @@ def semivar_DNN(d, model):  # 传入距离h（d）,块金，基台，变程，�
 
     max_d = 100
     if len(d.shape) == 1:
+        if len(d)==0:
+            d = np.array([0])
         res = model.predict(d)
         res2 = []
         for i in range(len(res)):
@@ -96,11 +98,11 @@ def semivar_DNN(d, model):  # 传入距离h（d）,块金，基台，变程，�
         ls = []
         for i in range(len(d)):
             for j in range(len(d[i])):
-
                 # if d[i][j]>max_d:
                 #     d[i][j]=max_d
                 ls.append(d[i][j])
-
+        if len(ls)==0:
+            ls.append(0)
         t = model.predict(ls)
 
         for i in range(len(d)):
@@ -151,20 +153,32 @@ def ordinaryKriging1(mat, x_vec, y_vec, z_vec, x_rx, y_rx, model):
     savenp("mat1", mat)
     vec = np.ones(len(z_vec)+1, dtype=np.float)
     d_vec = distance(x_vec, y_vec, x_rx, y_rx)
+    if len(d_vec)==0:
+        return -999,0
     vec[:len(z_vec)] = semivar_DNN(d_vec, model)
     savenp("vec1", vec)
     # savenp("inv_mat_befo1", mat)
     weight = np.linalg.solve(mat, vec)
 
-    savenp("weight1", weight)
-    est = 0
-    for i in range(len(weight)-1):
-        est = weight[i]*z_vec[i]+est
 
-    ok1_error=0
-    for i in range(len(weight)-1):
-        ok1_error = weight[i]*(z_vec[i]-est)*(z_vec[i]-est)/2+ok1_error
-    ok1_error=ok1_error/(len(weight)-1)
+    savenp("weight1", weight)
+    est = (z_vec * weight[:len(z_vec)]).sum()
+    est = 0
+
+    savenp("weight1", weight)
+    est = (z_vec * weight[:len(z_vec)]).sum()
+    n0 = mat[0][0]
+    n1 = (z_vec * weight[:len(z_vec)]).sum()
+    n2 = weight[len(weight)-1]
+    er = n0-n1-n2
+    ok1_error = abs(er)
+    # for i in range(len(weight)-1):
+    #     est = weight[i]*z_vec[i]+est
+
+    # ok1_error=0
+    # for i in range(len(weight)-1):
+    #     ok1_error = weight[i]*(z_vec[i]-est)*(z_vec[i]-est)/2+ok1_error
+    # ok1_error=ok1_error/(len(weight)-1)
 
     return est, ok1_error
 
@@ -308,8 +322,13 @@ def dnn_ok_v(pars):
     #     ok1_error=0
     # else:
     #     ok1_error=255
-
-    return (est, ok1_error)
+    tempnp=[]
+    for i in range(0,len(x1)):
+        tempnp.append(z1[i])
+    tempnp.append(est)
+    
+   
+    return (est, ok1_error,tempnp)
 
 #普通克里金  
 def mat_ok2(x, y, z,x_valid_j,y_valid_i,param,dis_num):

@@ -3,7 +3,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.optimize import minimize
 
-from tensorflow.keras.models import load_model
 import time
 
 import scipy.interpolate as si
@@ -116,8 +115,8 @@ def semivar_DNN(d, model):  # 传入距离h（d）,块金，基台，变程，�
 
 def semivar_exp2(d, nug, sill, ran):  # 传入距离 h（d）,块金，基台，变程，带入指数模型进行计算
 
-    t = np.abs(nug) + np.abs(sill) * (1.0-np.exp(-d/(np.abs(ran))))  # 指数模型
-    # t=np.abs(nug) + np.abs(sill) * (1.0-np.exp(-np.square(d/(np.abs(ran)))))#高斯模型
+    t = 0 + np.abs(sill) * (1.0-np.exp(-d/(np.abs(ran))))  # 指数模型
+    # t=np.abs(nug) + np.abs(sill) * (1.0-np.exp(np.square(d/(np.abs(ran)))))#高斯模型
     # t=np.abs(nug) + np.abs(sill) * (1.5*d/(np.abs(ran)-0.5*np.power(d/(np.abs(ran)),3)))
     # for i in range(0,len(d)):
     #     if d[i]>np.abs(ran):
@@ -131,16 +130,21 @@ def semivar_exp2(d, nug, sill, ran):  # 传入距离 h（d）,块金，基台，
 
 def semivarFitting(d, data):  # 获取块金，基台，变程
     def objFunc(x):
-        theorem = semivar_exp2(d, x[0], x[1], x[2])
+        theorem = semivar_exp2(d, 0, x[1], x[2])
         return ((data-theorem)**2).sum()
-
-    x0 = np.random.uniform(0.0, 1.0, 3)
-    res = minimize(objFunc, x0, method='nelder-mead')
-    for i in range(5):
-        x0 = np.random.uniform(0.0, 1.0, 3)
-        res_tmp = minimize(objFunc, x0, method='nelder-mead')
+    # nelder-mead Nelder-Mead
+    x0 = np.random.uniform(0.0, 0.5, 3)
+    res = minimize(objFunc, x0, method='Nelder-Mead')
+    for i in range(10):
+        x0 = np.random.uniform(0.0, 0.5, 3)
+        #res_tmp = minimize(objFunc, x0, method='Nelder-Mead')  
+        res_tmp = minimize(objFunc, x0, method='Nelder-Mead')
         if res.fun > res_tmp.fun:
             res = res_tmp
+   
+    #res_tmp = minimize(objFunc, x0, method='Nelder-Mead')  
+    #res = minimize(objFunc, x0, method='BFGS')
+   
     return np.abs(res.x)
 
 
@@ -183,10 +187,25 @@ def ordinaryKriging2(mat, x_vec, y_vec, z_vec, x_rx, y_rx, nug, sill, ran):
     n0 = mat[0][0]
     n1 = (z_vec * weight[:len(z_vec)]).sum()
     n2 = weight[len(weight)-1]
-    ok1_error = cal_error(n0, n1, n2)
+    er = n0-n1-n2
+    ok1_error = abs(er)
+    #ok1_error = cal_error(n0, n1, n2)
 
+    
+    tempnp=[]
+    for i in range(0,len(x_vec)):
+        tempnp.append(z_vec[i])
+    tempnp.append(est)
+    tempnp=np.array(tempnp,dtype=float)
+    # fp=open("EXP_P.txt","a",encoding="utf-8")
+    # for i in range(0,len(x_vec)):
+    #     strs=str(x_vec[i])+' '+str(y_vec[i])+' '+str(z_vec[i])+' '
+    #     fp.write(strs)
+    # strs=str(x_rx)+' '+str(y_rx)+' '+str(est)+'\n'
+    # fp.write(strs)
+    # fp.close()
     # print("ok2",ok1_error,est)
-    return est, ok1_error
+    return est, ok1_error,tempnp
 
 
 def distance(x1, y1, x2, y2):
@@ -312,13 +331,13 @@ def dnn_ok_v(pars):
 
 #普通克里金  
 def mat_ok2(x, y, z,x_valid_j,y_valid_i,param,dis_num):
-    x2,y2,z2,mat2 =  genMat2(x, y, z, param[0], param[1], param[2], x_valid_j, y_valid_i,dis_num)
+    x2,y2,z2,mat2 = genMat2(x, y, z, param[0], param[1], param[2], x_valid_j, y_valid_i,dis_num)
     # savenp("mat1", mat2)
-    est,ok2_error = ordinaryKriging2(mat2, x2, y2, z2, x_valid_j,y_valid_i, param[0], param[1], param[2]) 
+    est,ok2_error,tempnp = ordinaryKriging2(mat2, x2, y2, z2, x_valid_j,y_valid_i, param[0], param[1], param[2]) 
     
     # if ok2_error>error_threshold:
     #     ok2_error=0
     # else:
     #     ok2_error=255
             
-    return est,ok2_error
+    return est,ok2_error,tempnp

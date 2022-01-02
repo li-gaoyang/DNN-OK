@@ -117,7 +117,7 @@ def semivar_DNN(d, model):  # 传入距离h（d）,块金，基台，变程，�
 def semivar_exp2(d, nug, sill, ran):  # 传入距离 h（d）,块金，基台，变程，带入指数模型进行计算
 
     # t = np.abs(nug) + np.abs(sill) * (1.0-np.exp(-d/(np.abs(ran))))  # 指数模型
-    t=np.abs(nug) + np.abs(sill) * (1.0-np.exp(-np.square(d/(np.abs(ran)))))#高斯模型
+    t=0 + np.abs(sill) * (1.0-np.exp(-np.square(d/(np.abs(ran)))))#高斯模型
     # t=np.abs(nug) + np.abs(sill) * (1.5*d/(np.abs(ran)-0.5*np.power(d/(np.abs(ran)),3)))
     # for i in range(0,len(d)):
     #     if d[i]>np.abs(ran):
@@ -134,10 +134,10 @@ def semivarFitting(d, data):  # 获取块金，基台，变程
         theorem = semivar_exp2(d, x[0], x[1], x[2])
         return ((data-theorem)**2).sum()
 
-    x0 = np.random.uniform(0.0, 1.0, 3)
+    x0 = np.random.uniform(0.0, 0.5, 3)
     res = minimize(objFunc, x0, method='nelder-mead')
-    for i in range(5):
-        x0 = np.random.uniform(0.0, 1.0, 3)
+    for i in range(10):
+        x0 = np.random.uniform(0.0,0.5, 3)
         res_tmp = minimize(objFunc, x0, method='nelder-mead')
         if res.fun > res_tmp.fun:
             res = res_tmp

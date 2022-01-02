@@ -9,6 +9,12 @@ import scipy.interpolate as si
 import publicHelper_gauss as ph
 import threadpool
 import time
+import normal_test
+import math
+from sklearn.metrics import r2_score
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error
+
 z_map1=[]
 z_map2=[]
 
@@ -21,6 +27,7 @@ re_vals=[]
 def get_return_val(request,v):
     global re_vals
     re_vals.append(v)
+
 
 
 
@@ -52,7 +59,8 @@ if __name__=="__main__":
             z.append(dem[n[i]][n[j]])
             xyzs.append(xyz)
         
-
+    abnormal=normal_test.Normal_Test(np.array(z,dtype=np.float))
+    print(abnormal)
 
     DCOR = 100.0 #correlation distance [m] 相关距离,
     STDEV = 8.0 #standard deviation 标准差
@@ -69,23 +77,19 @@ if __name__=="__main__":
     plt.scatter(d_sv,sv)#20个三点
   
 
-     
-
     
- 
-   
+    
     param = ph.semivarFitting(d_sv, sv)#vb
     print(param)
     S1=plt.scatter(d_sv,sv,c='royalblue')#20个三点
  
    
-    #param[0]=0
-    # param[1]=1600
-    # param[2]=100
-    S2=plt.plot(d_sv,ph.semivar_exp2(d_sv, param[0], param[1], param[2]),c='red')#指数模型拟合的曲线
+    param[0]=0
+    
+    S2=plt.plot(d_sv,ph.semivar_exp2(d_sv,0, param[1], param[2]),c='red')#指数模型拟合的曲线
     # plt.savefig("chart.jpg")
     plt.legend([S1, S2[0]], ['Points', 'Gaussian Model'])
-    # plt.show()
+    #plt.show()
     '''plot empirical/      semivariogram 情节经验/理论变异函数'''
     # d_fit = np.linspace(0.0, D_MAX, 1000)#生成1000个等间隔的数字（在0到500之间）
  
@@ -111,11 +115,11 @@ if __name__=="__main__":
     z_map2_error = np.zeros([len(x_valid-1), len(y_valid-1)])
     
    
-    error_threshold=20
+     
     #普通克里金
     for i in range(len(y_valid)):
         for j in range(len(x_valid)):
-            est2,error2=ph. mat_ok2(x, y, z,x_valid[j],y_valid[i],param,error_threshold)#OK
+            est2,error2=ph.mat_ok2(x, y, z,x_valid[j],y_valid[i],param,30)#OK
             z_map2_error[i][j]=abs(error2)
             z_map2[i][j]=est2
   
@@ -144,13 +148,22 @@ if __name__=="__main__":
     
 
 
-    fig1=plt.figure()
-    fig1.canvas.set_window_title('gauss_kriging_error')
-    plt.imshow(z_map2_error, cmap = "hsv",vmin=0, vmax=280)
-    plt.colorbar()
+    # fig1=plt.figure()
+    # fig1.canvas.set_window_title('gauss_kriging_error')
+    # plt.imshow(z_map2_error, cmap = "hsv",vmin=0, vmax=280)
+    # plt.colorbar()
   
-    print("高斯模型插值减原图的标准差:",np.std(z_map2-z_map0))
+# print("高斯模型插值减原图的标准差:",np.std(z_map2-z_map0))
+
+    print("高斯_RMSE = ",str(np.sqrt(mean_squared_error(z_map2,z_map0))))#均方根误差RMSE
+    print("高斯_MAE = ", str(mean_absolute_error(z_map2,z_map0)))#平均绝对误差MAE
+    # print("高斯_r2_score = ", str(r2_score(z_map2,z_map0)))#平均绝对误差MAE
+
     print("高斯模型插值克里金方差的平均数:",np.sum(z_map2_error)/z_map2_error.size)
+
+    test_y=ph.semivar_exp2(d_sv,0, param[1], param[2])
+    # print("高斯变差函数拟合_std = ", str(np.std(test_y-sv)))# 
+    print("高斯变差函数拟合_r2_score = ", str(r2_score(test_y,sv)))# 
 
     z_map1_er=0
     z_map2_er=0
@@ -164,7 +177,7 @@ if __name__=="__main__":
                 z_map2_er=z_map2_er+1
 
  
-    print("z_map2_er:",z_map2_er)
+    #print("z_map2_er:",z_map2_er)
 
     plt.show()
 
