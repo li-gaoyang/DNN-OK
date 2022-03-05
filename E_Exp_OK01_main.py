@@ -29,11 +29,30 @@ def get_return_val(request,v):
 
 
 
+def getavesamples(d_sv,sv,percentage):
+    num=len(d_sv)
+    n=int(1/percentage) 
+    flag_n=0
+    trainx=[]
+    trainy=[]
+    testx=[]
+    testy=[]
+    for idx,v in enumerate(d_sv):
+        if (idx+1)%n==0:
+            testx.append(d_sv[idx])
+            testy.append(sv[idx])
+        else:
+            trainx.append(d_sv[idx])
+            trainy.append(sv[idx])
+
+    return trainx,trainy,testx,testy
+
+
 
 if __name__=="__main__":
 
 
-    dem=cv.imread('DEM01.jpg')#读取原始图片
+    dem=cv.imread('DEM04.jpg')#读取原始图片
     dem=cv.cvtColor(dem,cv.COLOR_BGR2GRAY) # 
     dem = cv.resize(dem, (100,100)) #原始图片设定为100*100像素的
     # dem=dst[0:100, 0:100]#截取100* 100的图片
@@ -75,22 +94,25 @@ if __name__=="__main__":
     d_sv, sv = ph.genSemivar(xyzs_np, D_MAX, N_SEMIVAR,len(n)*len(n))#根据原始数据，D_MAX最大距离，N_SEMIVAR个数限制，
     d_sv = np.insert(d_sv, 0, 0)
     sv = np.insert(sv, 0, 0)#快金为0
-    
-  
+   
+    print(d_sv)
+    print(sv)
+ 
+
+    d_sv,sv,testx,testy=getavesamples(d_sv,sv,0.2)
+    testy=np.array(testy)
     plt.scatter(d_sv,sv)#20个三点
   
-
    
- 
-   
-    param = ph.semivarFitting(d_sv, sv)#vb
+    param = ph.semivarFitting(np.array(d_sv), np.array(sv))#vb
     print(param)
     S1=plt.scatter(d_sv,sv,c='royalblue')#20个三点
  
    
     param[0]=0#快金为0
+    
   
-    S2=plt.plot(d_sv,ph.semivar_exp2(d_sv, param[0], param[1], param[2]),c='red')#指数模型拟合的曲线
+    S2=plt.plot(d_sv,ph.semivar_exp2(np.array(d_sv), param[0], param[1], param[2]),c='red')#指数模型拟合的曲线
     #plt.savefig("chart.jpg")
     #plt.show()
     plt.legend([S1, S2[0]], ['Points', 'Exponential Model'])
@@ -132,7 +154,8 @@ if __name__=="__main__":
             z_map2_error[i][j]=abs(error2)
             z_map2[i][j]=est2
             tempnps.append(tempnp)
-  
+            print("exp_v:", est2, "-------exp_ok_error:",
+                  error2, "-------", i, "--------", j)
     tempnps=np.array(tempnps)
     with open('EXP_P.txt', 'w') as f:
         for i in range(len(tempnps)):
@@ -178,12 +201,20 @@ if __name__=="__main__":
   
     # print("指数模型插值结果-原图的标准差:",np.std(z_map2-z_map0))
 
+    testy_res=ph.semivar_exp2(np.array(testx), param[0], param[1], param[2])
+    print(testy_res)
+    print(testy)
+    print("EXP测试集R2 = ",str(r2_score(testy_res,testy)))#
+    print("EXP_MAE = ", str(mean_absolute_error(testy_res,testy)))#平均绝对误差MAE
+    test_y=ph.semivar_exp2(np.array(d_sv),0, param[1], param[2])
+    print("指数变差函数拟合_r2_score = ", str(r2_score(test_y,np.array(sv))))# 
+
     print("指数_RMSE = ",str(np.sqrt(mean_squared_error(z_map2,z_map0))))#均方根误差RMSE
     print("指数_MAE = ", str(mean_absolute_error(z_map2,z_map0)))#平均绝对误差MAE
     # print("指数_r2_score = ", str(r2_score(z_map2,z_map0)))#平均绝对误差MAE
     
     print("指数插值结果的克里金方差的平均数:",abs(np.sum(z_map2_error)/z_map2_error.size))
-    test_y=ph.semivar_exp2(d_sv,0, param[1], param[2])
+    test_y=ph.semivar_exp2(np.array(d_sv),0, param[1], param[2])
     # print("指数变差函数拟合_std = ", str(np.std(test_y-sv)))# 
 
     print("指数变差函数拟合_r2_score = ", str(r2_score(test_y,sv)))# 
@@ -198,7 +229,7 @@ if __name__=="__main__":
             if e1>e2:
                 z_map2_er=z_map2_er+1
 
- 
+
     #print("z_map2_er:",z_map2_er)
 
     plt.show()

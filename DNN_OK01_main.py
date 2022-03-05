@@ -34,11 +34,31 @@ def get_return_val(request, v):
     re_vals.append(v)
 
 
+def getavesamples(d_sv,sv,percentage):
+    num=len(d_sv)
+    n=int(1/percentage)
+    flag_n=0
+    trainx=[]
+    trainy=[]
+    testx=[]
+    testy=[]
+    for idx,v in enumerate(d_sv):
+        if (idx+1)%n==0:
+            testx.append(d_sv[idx])
+            testy.append(sv[idx])
+        else:
+            trainx.append(d_sv[idx])
+            trainy.append(sv[idx])
 
-if __name__ == "__main__":
+    return trainx,trainy,testx,testy
+
+
+
+
+if __name__ == "__main__": 
 
     # 读取图片
-    dem = cv.imread('DEM01.jpg')  # 读取原始图片
+    dem = cv.imread('DEM04.jpg')  # 读取原始图片
     dem = cv.cvtColor(dem, cv.COLOR_BGR2GRAY)  # 原始图片转灰度图
     dem = cv.resize(dem, (100, 100))  # 原始图片设定为100*100像素的
  
@@ -88,14 +108,18 @@ if __name__ == "__main__":
     print(sv)
     d_sv = np.insert(d_sv, 0, 0)
     sv = np.insert(sv, 0, 0)#快金为0
+
+    d_sv,sv,testx,testy=getavesamples(d_sv,sv,0.2)
+
     model=DNN_OK02_semi.trains(d_sv,sv)  #DNN拟合半变异函数
 
-    model = load_model("model_DNN.h5")
+   
+    #model = load_model("model_DNN.h5")
     #显示拟合的半变异函数
-    # S1=plt.scatter(d_sv, sv,c='royalblue')  # 18个三点
-    # S2=plt.plot(d_sv, model.predict(d_sv),c='red')  # 神经网络拟合的曲线
-    # plt.legend([S1, S2[0]], ['Points', 'DNN Model'])
-    # # plt.savefig("semi.jpg")
+    S1=plt.scatter(d_sv, sv,c='royalblue')  # 18个三点
+    S2=plt.plot(d_sv, model.predict(d_sv),c='red')  # 神经网络拟合的曲线
+    plt.legend([S1, S2[0]], ['Points', 'DNN Model'])
+    plt.savefig("semi.jpg")
     # plt.show()
     #创建一个空白图片50*50的。
     N_DIV = 51
@@ -178,15 +202,20 @@ if __name__ == "__main__":
     # plt.imshow(z_map1_error, cmap="hsv", vmin=0, vmax=200)
     # plt.colorbar()
     #plt.savefig("DNN_OK_error.jpg")
-    
-    # print("DNN插值结果减原图的标准差:",np.std(z_map1-z_map0))
-    print("DNN_RMSE = ",str(np.sqrt(mean_squared_error(z_map1,z_map0))))#均方根误差RMSE
-    print("DNN_MAE = ", str(mean_absolute_error(z_map1,z_map0)))#平均绝对误差MAE
-    # print("DNN_r2_score = ", str(r2_score(z_map1,z_map0)))# 
+    testy_res=model.predict(testx)
+    print(testy_res)
+    print(testy)
+    print("DNN测试集R2 = ",str(r2_score(testy_res,testy)))#
     testdata=model.predict(d_sv)
     print("DNN变差函数拟合_r2_score = ", str(r2_score(testdata,sv)))# 
+    # print("DNN插值结果减原图的标准差:",np.std(z_map1-z_map0))
+    print("神经网络_RMSE = ",str(np.sqrt(mean_squared_error(z_map1,z_map0))))#均方根误差RMSE
+    print("神经网络_MAE = ", str(mean_absolute_error(z_map1,z_map0)))#平均绝对误差MAE
+    # print("DNN_r2_score = ", str(r2_score(z_map1,z_map0)))# 
+    testdata=model.predict(d_sv)
+    print("神经网络变差函数拟合_r2_score = ", str(r2_score(testdata,sv)))# 
     
     # print("DNN变差函数拟合_std = ", str(np.std(testdata-sv)))# 
-    print("DNN插值结果的克里金方差的平均数:",abs(np.sum(z_map1_error)/z_map1_error.size))
+    print("神经网络插值结果的克里金方差的平均数:",abs(np.sum(z_map1_error)/z_map1_error.size))
     plt.show()
    

@@ -31,6 +31,27 @@ def get_return_val(request,v):
 
 
 
+def getavesamples(d_sv,sv,percentage):
+    num=len(d_sv)
+    n=int(1/percentage)
+    flag_n=0
+    trainx=[]
+    trainy=[]
+    testx=[]
+    testy=[]
+    for idx,v in enumerate(d_sv):
+        if (idx+1)%n==0:
+            testx.append(d_sv[idx])
+            testy.append(sv[idx])
+        else:
+            trainx.append(d_sv[idx])
+            trainy.append(sv[idx])
+
+    return trainx,trainy,testx,testy
+
+
+
+
 
 
 
@@ -38,7 +59,7 @@ def get_return_val(request,v):
 if __name__=="__main__":
 
 
-    dem=cv.imread('DEM01.jpg')#读取原始图片
+    dem=cv.imread('DEM04.jpg')#读取原始图片
     dem=cv.cvtColor(dem,cv.COLOR_BGR2GRAY) #原始图片转灰度图
     dem = cv.resize(dem, (100,100)) #原始图片设定为100*100像素的
     # dem=dst[0:100, 0:100]#截取100*100的图片
@@ -73,6 +94,23 @@ if __name__=="__main__":
     d_sv = np.insert(d_sv, 0, 0)
     sv = np.insert(sv, 0, 0)#快金为0
     
+    print(d_sv)
+    print(sv)
+ 
+
+    d_sv,sv,testx,testy=getavesamples(d_sv,sv,0.2)
+    testy=np.array(testy)
+    plt.scatter(d_sv,sv)#20个三点
+  
+   
+    param = ph.semivarFitting(np.array(d_sv), np.array(sv))#vb
+    print(param)
+    S1=plt.scatter(d_sv,sv,c='royalblue')#20个三点
+ 
+   
+    param[0]=0#快金为0
+    
+   
   
     plt.scatter(d_sv,sv)#20个三点
   
@@ -122,6 +160,7 @@ if __name__=="__main__":
             est2,error2=ph.mat_ok2(x, y, z,x_valid[j],y_valid[i],param,30)#OK
             z_map2_error[i][j]=abs(error2)
             z_map2[i][j]=est2
+            print("gauss_v:", est2, "-------gauss_ok_error:",error2, "-------", i, "--------", j)
   
  
     ph.savenp("z_map1", z_map1)
@@ -154,6 +193,13 @@ if __name__=="__main__":
     # plt.colorbar()
   
 # print("高斯模型插值减原图的标准差:",np.std(z_map2-z_map0))
+    testy_res=ph.semivar_exp2(np.array(testx), param[0], param[1], param[2])
+    print(testy_res)
+    print(testy)
+    print("高斯测试集R2 = ",str(r2_score(testy_res,testy)))#
+    test_y=ph.semivar_exp2(np.array(d_sv),0, param[1], param[2])
+    print("高斯变差函数拟合_r2_score = ", str(r2_score(test_y,np.array(sv))))# 
+
 
     print("高斯_RMSE = ",str(np.sqrt(mean_squared_error(z_map2,z_map0))))#均方根误差RMSE
     print("高斯_MAE = ", str(mean_absolute_error(z_map2,z_map0)))#平均绝对误差MAE
@@ -161,7 +207,7 @@ if __name__=="__main__":
 
     print("高斯模型插值克里金方差的平均数:",np.sum(z_map2_error)/z_map2_error.size)
 
-    test_y=ph.semivar_exp2(d_sv,0, param[1], param[2])
+    test_y=ph.semivar_exp2(np.array(d_sv),0, param[1], param[2])
     # print("高斯变差函数拟合_std = ", str(np.std(test_y-sv)))# 
     print("高斯变差函数拟合_r2_score = ", str(r2_score(test_y,sv)))# 
 
